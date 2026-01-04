@@ -4,6 +4,7 @@ import chatgpt from "../services/review.llm_call.chatgpt.js";
 import { build_prompt } from "../services/review.prompt_build1.js";
 import static_analyzer from "../services/review.static_analysis.js";
 import hashCode from "../utils/review.hash.js";
+import mongoose from "mongoose";
 
 export async function analyzecode(req, res) {
   // firstly we have to check whether given data is valid or not
@@ -82,4 +83,60 @@ export async function analyzecode(req, res) {
   return res.status(500).json({
     error: "Internal server error during analysis",
   });
+}
+
+export async function getHistory(req, res) {
+  try {
+    // auth middleware guarantees req.user exists
+    const userId = req.user._id;
+
+    const reviews = await Review.find({ user: userId })
+      .sort({ createdAt: -1 })
+      .select(
+        "language constraints static_info failure_info response model createdAt"
+      );
+
+    return res.status(200).json({
+      count: reviews.length,
+      reviews,
+    });
+  } catch (err) {
+    console.error("getReviewHistory error:", err);
+    return res.status(500).json({
+      error: "Failed to fetch review history",
+    });
+  }
+}
+
+export async function getId(req, res) {
+  try {
+    const { id } = req.params;
+
+    // Validate ObjectId early
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        error: "Invalid review id",
+      });
+    }
+
+    const review = await Review.findOne({
+      _id: id,
+      user: req.user._id, // 🔒 ownership check
+    });
+
+    if (!review) {
+      return res.status(404).json({
+        error: "Review not found",
+      });
+    }
+
+    return res.status(200).json({
+      review,
+    });
+  } catch (err) {
+    console.error("getReviewById error:", err);
+    return res.status(500).json({
+      error: "Failed to fetch review",
+    });
+  }
 }
