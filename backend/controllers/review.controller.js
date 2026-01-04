@@ -1,0 +1,85 @@
+import Review from "../schema/review.code.schema.js";
+import failure_chance from "../services/review.failure_chance.js";
+import chatgpt from "../services/review.llm_call.chatgpt.js";
+import { build_prompt } from "../services/review.prompt_build1.js";
+import static_analyzer from "../services/review.static_analysis.js";
+import hashCode from "../utils/review.hash.js";
+
+export async function analyzecode(req, res) {
+  // firstly we have to check whether given data is valid or not
+  try {
+    const { language, constraints = "", code } = req.body;
+    if (!language || !code) {
+      return res.status(400).json({
+        error: "Language and code both are required",
+      });
+    }
+    const codeHash = hashCode(code);
+    if (code.length > 15000) {
+      return res.status(400).json({
+        error: "Code is too long",
+      });
+    }
+
+    if (!req.user) {
+      return res.status(401).json({
+        error: "Unauthorized",
+      });
+    }
+
+    const existing = await Review.findOne({
+      codeHash,
+      language,
+      constraints,
+    });
+
+    if (existing) {
+      return res.json({
+        cached: true,
+        explanation: existing.response,
+        static_info: existing.static_info,
+        failure_info: existing.failure_info,
+      });
+    }
+
+    const static_info = static_analyzer(code);
+    // console.log(static_info);
+
+    const failure_info = failure_chance(static_info, constraints);
+
+    const prompt = build_prompt(
+      code,
+      language,
+      static_info,
+      failure_info,
+      constraints
+    );
+    // console.log(prompt);
+    const response = await chatgpt(prompt);
+    // console/.log(response);
+
+    const review = await Review.create({
+      user: req.user._id,
+      language,
+      constraints,
+      codeHash,
+      static_info,
+      failure_info,
+      response,
+      model: process.env.OPENAI_MODEL,
+    });
+
+    return res.status(200).json({
+      cached: false,
+      static_info,
+      failure_info,
+      response,
+      id: review._id,
+    });
+  } catch (err) {
+    console.error("AnalyzeCode error:", err);
+  }
+  return res.status(500).json({
+    error: "Internal server error during analysis",
+  });
+}
