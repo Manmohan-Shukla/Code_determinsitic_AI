@@ -5,7 +5,6 @@ import {
   analyzecode,
   getId,
 } from "../controllers/review.controller.js";
-const app = e();
 const router = e.Router();
 
 router.post("/analyze", authenticate, analyzecode);

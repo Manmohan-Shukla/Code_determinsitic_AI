@@ -1,11 +1,12 @@
 import dotenv from "dotenv";
 dotenv.config();
-console.log(process.env.OPENAI_API_KEY);
 import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
 import authRoutes from "./route/auth.routes.js";
 import reviewRoutes from "./route/review.route.js";
+import suggestRoutes from "./route/suggest.route.js";
+
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -20,5 +21,6 @@ app.listen(port, () => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/review", reviewRoutes);
+app.use("/api/suggest", suggestRoutes);
 
 mongoose.connect(process.env.DB_URL);

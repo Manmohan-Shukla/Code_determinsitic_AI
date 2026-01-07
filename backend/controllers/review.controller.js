@@ -1,8 +1,8 @@
 import Review from "../schema/review.code.schema.js";
-import failure_chance from "../services/review.failure_chance.js";
-import chatgpt from "../services/review.llm_call.chatgpt.js";
-import { build_prompt } from "../services/review.prompt_build1.js";
-import static_analyzer from "../services/review.static_analysis.js";
+import failure_chance from "../services/review_service/review.failure_chance.js";
+import chatgpt from "../services/llm_call.js";
+import { build_prompt } from "../services/prompt/review.prompt_build1.js";
+import static_analyzer from "../services/review_service/review.static_analysis.js";
 import hashCode from "../utils/review.hash.js";
 import mongoose from "mongoose";
 
