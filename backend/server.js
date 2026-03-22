@@ -8,7 +8,15 @@ import reviewRoutes from "./route/review.route.js";
 import suggestRoutes from "./route/suggest.route.js";
 
 const app = express();
-app.use(cors());
+const cors = require('cors');
+
+app.use(cors({
+  origin: [
+    'http://localhost:${process.env.PORT}',            
+    'https://v0-code-deterministic-ai.vercel.app'   
+  ],
+  credentials: true
+}));
 app.use(express.json());
 const port = process.env.PORT || 3000;
 
