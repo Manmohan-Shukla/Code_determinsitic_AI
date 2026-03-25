@@ -4,10 +4,10 @@ import { validate } from "../middleware/auth.validate.js";
 import signSchema from "../schema/auth.schema.js";
 import authenticate from "../middleware/auth.middleware.js";
 const router = express.Router();
-router.get("/signin", login);
+router.post("/login", login);
 
-router.get("/signup", validate(signSchema), signup);
+router.post("/signup", validate(signSchema), signup);
 
-router.post("/me", authenticate, getMe);
+router.get("/me", authenticate, getMe);
 
 export default router;

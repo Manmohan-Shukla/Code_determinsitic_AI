@@ -1,17 +1,23 @@
 import OpenAI from "openai";
 
-/**
- * Calls OpenRouter LLM to explain failure
- * @param {string} prompt - Pre-built prompt from buildPrompt()
- * @returns {Promise<string>} - Explanation text
- */
+// 🔥 Free models priority list
+const MODELS = ["nvidia/nemotron-3-super-120b-a12b:free",
+  "meta-llama/llama-3.3-70b-instruct:free",
+  "mistralai/mixtral-8x7b-instruct:free",
+  "openrouter/free",
+];
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
 export default async function chatgpt(prompt) {
+  // ✅ Ensure env is loaded
   if (!process.env.OPENAI_API_KEY) {
-    throw new Error("OPENAI_API_KEY is missing at runtime");
+    throw new Error("OPENAI_API_KEY is missing. Check your .env file.");
   }
 
+  // ✅ Create client INSIDE function (fixes your error)
   const client = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
+    apiKey: process.env.OPENAI_API_KEY, // OpenRouter key
     baseURL: "https://openrouter.ai/api/v1",
     defaultHeaders: {
       "HTTP-Referer": "http://localhost:3000",
@@ -19,12 +25,45 @@ export default async function chatgpt(prompt) {
     },
   });
 
-  const response = await client.responses.create({
-    model: process.env.OPENAI_MODEL,
-    input: prompt,
-    temperature: 0.2,
-    max_output_tokens: 500,
-  });
+  for (let model of MODELS) {
+    try {
+      console.log("Trying model:", model);
 
-  return response.output_text;
+      const response = await client.chat.completions.create({
+        model,
+        messages: [
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        temperature: 0.2,
+        max_tokens: 500,
+      });
+
+      const text = response?.choices?.[0]?.message?.content;
+
+      if (text && text.trim() !== "") {
+        console.log("Success with model:", model);
+        return text;
+      }
+
+    } catch (err) {
+      console.log("Model failed:", model);
+
+      // Debug message
+      console.log("Error:", err?.error?.message || err.message);
+
+      // If NOT rate limit → stop trying further
+      if (err.status !== 429) {
+        break;
+      }
+
+      // Wait before trying next model
+      await sleep(1000);
+    }
+  }
+
+  // ✅ FINAL FALLBACK (prevents DB crash)
+  return "AI service is currently busy. Please try again shortly.";
 }

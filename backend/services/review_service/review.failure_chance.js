@@ -15,10 +15,11 @@ function normalizeConstraints(constraints) {
 export default function failure_chance(static_info, constraints) {
   const cnormal = normalizeConstraints(constraints);
 
+  // 🔥 Detect input size
   const largeN =
     cnormal.includes("1e5") ||
     cnormal.includes("100000") ||
-    cnormal.include("200000") ||
+    cnormal.includes("200000") ||
     cnormal.includes("10^5") ||
     cnormal.includes("2e5");
 
@@ -27,7 +28,11 @@ export default function failure_chance(static_info, constraints) {
     cnormal.includes("1000000") ||
     cnormal.includes("10^6");
 
-  const tightMemory = cnormal.includes("128mb") || cnormal.includes("64mb");
+  const tightMemory =
+    cnormal.includes("128mb") ||
+    cnormal.includes("64mb");
+
+  // 🚀 ===== TLE CASES =====
 
   if (static_info.nested && largeN) {
     return {
@@ -48,16 +53,27 @@ export default function failure_chance(static_info, constraints) {
   if (static_info.recursion && vlargeN) {
     return {
       type: "TLE",
-      confidence: "Medium",
-      reason: "Deep Recursion used with very large input size",
+      confidence: "High",
+      reason: "Deep recursion with very large input size",
     };
   }
+
+  // 🔥 IMPORTANT FIX (your fibonacci case)
+  if (static_info.recursion && !static_info.dp) {
+    return {
+      type: "TLE",
+      confidence: "High",
+      reason: "Exponential recursion without memoization",
+    };
+  }
+
+  // 🚀 ===== MLE CASES =====
 
   if (static_info.dp && vlargeN) {
     return {
       type: "MLE",
       confidence: "High",
-      reason: "Dp table for too large constraints",
+      reason: "DP table too large for memory limits",
     };
   }
 
@@ -65,25 +81,21 @@ export default function failure_chance(static_info, constraints) {
     return {
       type: "MLE",
       confidence: "Medium",
-      reason: "DP memory usage risky under tight limits",
+      reason: "DP memory usage risky under tight constraints",
     };
   }
+
+  // 🚀 ===== WA CASES =====
 
   if ((static_info.dfs || static_info.bfs) && !static_info.hashMap) {
     return {
       type: "WA",
-      confidence: "Low",
+      confidence: "Medium",
       reason: "Graph traversal without visited tracking",
     };
   }
 
-  if (static_info.recursion && !static_info.dp) {
-    return {
-      type: "WA",
-      confidence: "Medium",
-      reason: "Recursive solution without memoization",
-    };
-  }
+  // 🚀 ===== SUBOPTIMAL =====
 
   if (static_info.sorting && !largeN) {
     return {
@@ -93,9 +105,11 @@ export default function failure_chance(static_info, constraints) {
     };
   }
 
+  // 🚀 DEFAULT
+
   return {
     type: "UNKNOWN",
-    confidence: "LOW",
+    confidence: "Low",
     reason: "Insufficient evidence to classify failure",
   };
 }
