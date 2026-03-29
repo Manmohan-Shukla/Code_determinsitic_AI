@@ -1,12 +1,7 @@
 import OpenAI from "openai";
 
 // 🔥 Free models priority list
-const MODELS = ["nvidia/nemotron-3-super-120b-a12b:free",
-  "meta-llama/llama-3.3-70b-instruct:free",
-  "mistralai/mixtral-8x7b-instruct:free",
-  "openrouter/free",
-];
-
+const MODELS = (process.env.MODELS || "").split(",").filter(Boolean);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 export default async function chatgpt(prompt) {
